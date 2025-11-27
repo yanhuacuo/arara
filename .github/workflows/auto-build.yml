@@ -1,0 +1,41 @@
+# .github/workflows/win-build.yml
+name: Build Windows Version
+on:
+  push:
+    branches: [ master, development ]
+  pull_request:
+    branches: [ master, development ]
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        java-version: [11, 17, 21]  # 保留多个Java版本测试（兼容Windows）
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ matrix.java-version }}
+          distribution: corretto
+          cache: gradle
+
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v4
+
+      - name: Build with Gradle (Windows)
+        run: .\gradlew.bat build  # Windows使用gradlew.bat
+
+      - name: Generate executable JAR
+        run: .\gradlew.bat :cli:shadowJar  # 生成带依赖的JAR
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: arara-windows-jdk${{ matrix.java-version }}
+          path: cli/build/libs/*-with-deps-*.jar
+          retention-days: 7
