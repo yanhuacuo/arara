@@ -11,11 +11,18 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        java-version: [11, 17, 21]  # 保留多个Java版本测试（兼容Windows）
+        java-version: [11, 17, 21]
 
     steps:
+      - name: Configure Git for line endings
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.eol lf
+
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 确保完整检出历史，避免换行符处理不完整
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -27,11 +34,14 @@ jobs:
       - name: Validate Gradle wrapper
         uses: gradle/actions/wrapper-validation@v4
 
-      - name: Build with Gradle (Windows)
-        run: .\gradlew.bat build  # Windows使用gradlew.bat
+      - name: Fix code formatting (spotless)
+        run: .\gradlew.bat spotlessApply  # 自动修复格式问题（包括换行符）
+
+      - name: Build with Gradle
+        run: .\gradlew.bat build
 
       - name: Generate executable JAR
-        run: .\gradlew.bat :cli:shadowJar  # 生成带依赖的JAR
+        run: .\gradlew.bat :cli:shadowJar
 
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
